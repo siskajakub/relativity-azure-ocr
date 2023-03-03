@@ -436,7 +436,7 @@ namespace RelativityAzureOcr
             }
 
             // Construct OCRed text
-            string textOcred = string.Join(string.Empty, linesOcred);
+            string textOcred = string.Join(Environment.NewLine, linesOcred);
             Stream streamOcred = new MemoryStream();
             StreamWriter streamWriter = new StreamWriter(streamOcred);
             streamWriter.Write(textOcred);

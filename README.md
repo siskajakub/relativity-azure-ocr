@@ -19,13 +19,12 @@ You can also use precompiled DLL from the repository.
 ## 3) Upload DLL
 Upload `RelativityAzureOcr.dll` to Relativity Resource Files.  
 You may need to install also additional libraries that are required. These libraries were required for Relativity Server 2022:
-* System.Text.Json.dll
-* System.Memory.dll
-* Microsoft.Bcl.AsyncInterfaces.dll
-* System.Text.Encodings.Web.dll
-* System.Runtime.CompilerServices.Unsafe.dll
 * System.Buffers.dll
+* System.Memory.dll
 * System.Numerics.Vectors.dll
+* System.Runtime.CompilerServices.Unsafe.dll
+* System.Text.Encodings.Web.dll
+* System.Text.Json.dll
 
 ## 4) Add to Workspace
 For desired workspaces add mass event handler to Document Object:

@@ -47,7 +47,7 @@ namespace RelativityAzureOcr
             _logger.LogDebug("Azure OCR, current Workspace ID: {workspaceId}", workspaceId.ToString());
 
             // Check if all Instance Settings are in place
-            IDictionary<string, string> instanceSettings = this.GetInstanceSettings(ref response, new string[] { "DestinationField", "LogField", "AzureSubscriptionKey", "AzureEndpoint" });
+            IDictionary<string, string> instanceSettings = this.GetInstanceSettings(ref response, new string[] { "DestinationField", "DestinationFieldRaw", "LogField", "AzureSubscriptionKey", "AzureEndpoint" });
             // Check if there was not error
             if (!response.Success)
             {
@@ -128,7 +128,7 @@ namespace RelativityAzureOcr
             _logger.LogDebug("Azure OCR, current Workspace ID: {workspaceId}", workspaceId.ToString());
 
             // Check if all Instance Settings are in place
-            IDictionary<string, string> instanceSettings = this.GetInstanceSettings(ref response, new string[] { "DestinationField", "LogField", "AzureSubscriptionKey", "AzureEndpoint"});
+            IDictionary<string, string> instanceSettings = this.GetInstanceSettings(ref response, new string[] { "DestinationField", "DestinationFieldRaw", "LogField", "AzureSubscriptionKey", "AzureEndpoint"});
             // Check if there was not error
             if (!response.Success)
             {
@@ -145,7 +145,7 @@ namespace RelativityAzureOcr
             for (int i = 0; i < this.BatchIDs.Count; i++)
             {
                 // OCR documents in Azure and update Relativity using Object Manager API
-                ocrTasks.Add(OcrDocument(workspaceId, this.BatchIDs[i], instanceSettings["DestinationField"], instanceSettings["LogField"], instanceSettings["AzureSubscriptionKey"], instanceSettings["AzureEndpoint"]));
+                ocrTasks.Add(OcrDocument(workspaceId, this.BatchIDs[i], instanceSettings["DestinationField"], instanceSettings["DestinationFieldRaw"], instanceSettings["LogField"], instanceSettings["AzureSubscriptionKey"], instanceSettings["AzureEndpoint"]));
 
                 // Update progreass bar
                 this.IncrementCount(1);
@@ -260,7 +260,7 @@ namespace RelativityAzureOcr
         /*
          * Custom method to OCR document using Azure Computer Vision
          */
-        private async Task<int> OcrDocument(int workspaceId, int documentArtifactId, string destinationField, string logField, string azureSubscriptionKey, string azureEndpoint)
+        private async Task<int> OcrDocument(int workspaceId, int documentArtifactId, string destinationField, string destinationFieldRaw, string logField, string azureSubscriptionKey, string azureEndpoint)
         {
             // Get logger
             Relativity.API.IAPILog _logger = this.Helper.GetLoggerFactory().GetLogger().ForContext<MassOperationHandler>();
@@ -360,7 +360,7 @@ namespace RelativityAzureOcr
 
             // Send the request, it may not be available right away so keep trying
             string ocredStatus = "";
-            string ocred = "";
+            string textOcredRaw = "";
             int retries = 50; // 50 == 5min
             do
             {
@@ -385,14 +385,14 @@ namespace RelativityAzureOcr
                 }
 
                 // Read the read response
-                ocred = await responseRead.Content.ReadAsStringAsync();
-                _logger.LogDebug("Azure OCR, OCR result (ArtifactID: {id}, length: {length}, result:{result})", documentArtifactId.ToString(), ocred.Length.ToString(), ocred);
+                textOcredRaw = await responseRead.Content.ReadAsStringAsync();
+                _logger.LogDebug("Azure OCR, OCR result (ArtifactID: {id}, length: {length}, result:{result})", documentArtifactId.ToString(), textOcredRaw.Length.ToString(), textOcredRaw);
                 clientRead.Dispose();
 
                 // Parse JSON and get the OCR result status
                 try
                 {
-                    JsonElement ocrResults = JsonSerializer.Deserialize<JsonElement>(ocred);
+                    JsonElement ocrResults = JsonSerializer.Deserialize<JsonElement>(textOcredRaw);
 
                     // Check the OCR result
                     ocredStatus = ocrResults.GetProperty("status").GetString();
@@ -415,7 +415,7 @@ namespace RelativityAzureOcr
             List<string> linesOcred = new List<string>();
             try
             {
-                JsonElement ocrResults = JsonSerializer.Deserialize<JsonElement>(ocred);
+                JsonElement ocrResults = JsonSerializer.Deserialize<JsonElement>(textOcredRaw);
 
                 // Get all OCRed lines
                 foreach (JsonElement readResults in ocrResults.GetProperty("analyzeResult").GetProperty("readResults").EnumerateArray())
@@ -438,13 +438,13 @@ namespace RelativityAzureOcr
             // Construct OCRed text
             string textOcred = string.Join(Environment.NewLine, linesOcred);
             Stream streamOcred = new MemoryStream();
-            StreamWriter streamWriter = new StreamWriter(streamOcred);
-            streamWriter.Write(textOcred);
-            streamWriter.Flush();
+            StreamWriter streamWriterOcred = new StreamWriter(streamOcred);
+            streamWriterOcred.Write(textOcred);
+            streamWriterOcred.Flush();
             streamOcred.Position = 0;
 
-            // Log OCRed document
-            _logger.LogDebug("Azure OCR, OCRed document (ArtifactID: {id}, length: {length})", documentArtifactId.ToString(), textOcred.Length.ToString());
+            // Log OCRed text
+            _logger.LogDebug("Azure OCR, OCRed text (ArtifactID: {id}, length: {length})", documentArtifactId.ToString(), textOcred.Length.ToString());
 
             // Update document OCRed text
             try
@@ -468,10 +468,46 @@ namespace RelativityAzureOcr
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Azure OCR, document for OCR update error (ArtifactID: {id})", documentArtifactId.ToString());
+                _logger.LogError(e, "Azure OCR, OCRed text update error (ArtifactID: {id})", documentArtifactId.ToString());
                 return documentArtifactId;
             }
-            
+
+            // Construct raw OCRed text
+            Stream streamOcredRaw = new MemoryStream();
+            StreamWriter streamWriterOcredRaw = new StreamWriter(streamOcredRaw);
+            streamWriterOcredRaw.Write(textOcredRaw);
+            streamWriterOcredRaw.Flush();
+            streamOcredRaw.Position = 0;
+
+            // Log raw OCRed text
+            _logger.LogDebug("Azure OCR, OCRed text raw (ArtifactID: {id}, length: {length})", documentArtifactId.ToString(), textOcredRaw.Length.ToString());
+
+            // Update document raw OCRed text
+            try
+            {
+                // Construct objects and do document update
+                RelativityObjectRef relativityObject = new RelativityObjectRef
+                {
+                    ArtifactID = documentArtifactId
+                };
+                FieldRef relativityField = new FieldRef
+                {
+                    Name = destinationFieldRaw
+                };
+                UpdateLongTextFromStreamRequest updateRequest = new UpdateLongTextFromStreamRequest
+                {
+                    Object = relativityObject,
+                    Field = relativityField
+                };
+                KeplerStream keplerStream = new KeplerStream(streamOcredRaw);
+                await objectManager.UpdateLongTextFromStreamAsync(workspaceId, updateRequest, keplerStream);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Azure OCR, OCRed text raw update error (ArtifactID: {id})", documentArtifactId.ToString());
+                return documentArtifactId;
+            }
+
             // Update document OCR log
             try
             {

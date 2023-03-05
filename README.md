@@ -9,6 +9,7 @@ Name | Section | Value Type | Value (example) | Description
 AzureSubscriptionKey | Azure.OCR | Text | xxxxxxxxx | Azure OCR Subscription Key.
 AzureEndpoint | Azure.OCR | Text | xxxxxxxxx | Azure Endpoint.
 DestinationField | Azure.OCR | Text | Extracted Text OCRed | Document Field where to record the OCRed text.
+DestinationFieldRaw | Azure.OCR | Text | Extracted Text OCRed Raw | Document Field where to record the raw JSON OCRed text.
 LogField | Azure.OCR | Text | Azure OCR Log | Document Field to store the OCR log.
 
 ## 2) Compile DLL
@@ -30,7 +31,7 @@ You may need to install also additional libraries that are required. These libra
 For desired workspaces add mass event handler to Document Object:
 * Browse to Document Object (Workspace->Workspace Admin->Object Type->Document)
 * In Mass Operations section click New and add the handler:
-  * Name: Azure.OCR
+  * Name: Azure OCR
   * Pop-up Directs To: Mass Operation Handler
   * Select Mass Operation Handler: RelativityAzureOcr.dll
 

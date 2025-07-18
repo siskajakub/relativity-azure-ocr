@@ -19,7 +19,7 @@ You can also use precompiled DLL from the repository.
 
 ## 3) Upload DLL
 Upload `RelativityAzureOcr.dll` to Relativity Resource Files.  
-You may need to install also additional libraries that are required. These libraries were required for Relativity Server 2022:
+You may need to install also additional libraries that are required:
 * System.Buffers.dll
 * System.Memory.dll
 * System.Numerics.Vectors.dll
@@ -47,5 +47,5 @@ Log entry has following fields:
 OCR log can be viewed from the Relativity front-end via attached Relativity Script.
 
 # Notes
-Relativity Azure OCR mass operation was developed and tested in Relativity Server 2022.  
+Relativity Azure OCR mass operation was developed and tested for Relativity Server 2022, 2023 and 2024.  
 Relativity Azure OCR mass operation works correctly only with UTF-8 text.
